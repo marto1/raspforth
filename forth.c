@@ -40,10 +40,18 @@ void uart_putc ( unsigned int c )
     }
     PUT32(AUX_MU_IO_REG,c);
 }
+
+void uart_puts ( char* str )
+{
+    unsigned int rb = 0;
+    while(str[rb] != 0) {
+	uart_putc(str[rb]);
+	rb++;
+    }
+}
 //------------------------------------------------------------------------
 void hexstrings ( unsigned int d )
 {
-    //unsigned int ra;
     unsigned int rb;
     unsigned int rc;
 
@@ -109,7 +117,9 @@ int notmain ( unsigned int earlypc )
             //if(GET32(AUX_MU_LSR_REG)&0x20) break;
         //}
         /* PUT32(AUX_MU_IO_REG,ra); */
-	hexstring(0x12345678);
+	/* uart_putc(ra); */
+	/* uart_putc(0x20); */
+	uart_puts("WTF IS THIS?");
     }
 
     return(0);
