@@ -17,5 +17,9 @@ comes back.
 Note
 ====
 
-UART code based on
+* UART code based on
 https://github.com/dwelch67/raspberrypi/tree/master/uart02
+
+* Line editing based on
+https://github.com/antirez/linenoise
+
