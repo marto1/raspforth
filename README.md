@@ -54,7 +54,6 @@ STDOUT_FILENO
 ```
 * <stdlib.h> musl
 ```
-malloc
 realloc
 free
 ```
@@ -71,6 +70,5 @@ memmove
 strdup
 strncpy
 memmove
-memset
 strcmp
 ```
