@@ -26,7 +26,15 @@ https://github.com/antirez/linenoise
 Plan
 ====
 
-* <termios.h> implement
+### raspberry side: ###
+
+* static implementation
+* numbers
+* arithmetics
+
+### client side: ###
+
+* <termios.h> musl
 ```
 BRKINT
 ICRNL
@@ -42,10 +50,10 @@ ISIG
 VMIN
 VTIME
 TCSAFLUSH
-tcsetattr 
+tcsetattr
 ```
 
-* <unistd.h> implement
+* <unistd.h> musl
 ```
 write
 read
@@ -57,7 +65,7 @@ STDOUT_FILENO
 realloc
 free
 ```
-* <stdio.h> implement
+* <stdio.h> implement/delete!?
 ```
 printf
 snprintf

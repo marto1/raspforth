@@ -1,7 +1,6 @@
 
 ARMGNU ?= arm-none-eabi
-
-COPS = -Wall -O2 -nostdlib -nostartfiles -ffreestanding 
+COPS = -Wall -O3 -nostdlib -nostartfiles -ffreestanding 
 
 gcc : forth.hex forth.bin
 
