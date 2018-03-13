@@ -40,14 +40,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <errno.h>
 #include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
+
 #include "linenoise.h"
 
 #define LINENOISE_HISTORY_MAX_LEN 100
@@ -56,7 +50,6 @@
 
 static struct termios orig_termios; /* In order to restore at exit.*/
 static int rawmode = 0; /* For atexit() function to check if restore is needed*/
-static int atexit_registered = 0; /* Register atexit just 1 time. */
 static int history_len = 0;
 static char **history = NULL;
 
@@ -98,7 +91,7 @@ enum KEY_ACTION{
 	BACKSPACE =  127    /* Backspace */
 };
 
-static void linenoiseAtExit(void);
+/* static void linenoiseAtExit(void); */
 int linenoiseHistoryAdd(const char *line);
 static void refreshLine(struct linenoiseState *l);
 
@@ -109,11 +102,6 @@ static void refreshLine(struct linenoiseState *l);
 static int enableRawMode(int fd) {
      struct termios raw;
 
-    if (!isatty(STDIN_FILENO)) goto fatal;
-    if (!atexit_registered) {
-        atexit(linenoiseAtExit);
-        atexit_registered = 1;
-    }
     if (tcgetattr(fd,&orig_termios) == -1) goto fatal;
 
     raw = orig_termios;  /* modify the original mode */
@@ -137,8 +125,7 @@ static int enableRawMode(int fd) {
     return 0;
 
 fatal:
-    errno = ENOTTY;
-    return -1;
+    return -2;
 }
 
 static void disableRawMode(int fd) {
@@ -390,7 +377,6 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
             free(history[history_len]);
             return (int)l.len;
         case CTRL_C:     /* ctrl-c */
-            errno = EAGAIN;
             return -1;
         case BACKSPACE:   /* backspace */
         case 8:     /* ctrl-h */
@@ -504,8 +490,7 @@ static int linenoiseRaw(char *buf, size_t buflen, const char *prompt) {
     int count;
 
     if (buflen == 0) {
-        errno = EINVAL;
-        return -1;
+        return -3;
     }
 
     if (enableRawMode(STDIN_FILENO) == -1) return -1;
@@ -552,7 +537,7 @@ static void freeHistory(void) {
 }
 
 /* At exit we'll try to fix the terminal to the initial conditions. */
-static void linenoiseAtExit(void) {
+void linenoiseAtExit(void) {
     disableRawMode(STDIN_FILENO);
     freeHistory();
 }

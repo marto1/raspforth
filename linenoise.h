@@ -42,5 +42,6 @@
 char *linenoise(const char *prompt);
 void linenoiseFree(void *ptr);
 int linenoiseHistoryAdd(const char *line);
+void linenoiseAtExit(void);
 
 #endif /* __LINENOISE_H */

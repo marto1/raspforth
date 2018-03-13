@@ -1,3 +1,7 @@
+/* #include <stdlib.h> */
+/* extern typedef size_t; */
+/* extern void *malloc(size_t size); */
+/* extern void free(void *ptr); */
 extern void PUT32 ( unsigned int, unsigned int );
 extern unsigned int GET32 ( unsigned int );
 extern void dummy ( unsigned int );

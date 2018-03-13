@@ -23,3 +23,54 @@ https://github.com/dwelch67/raspberrypi/tree/master/uart02
 * Line editing based on
 https://github.com/antirez/linenoise
 
+Plan
+====
+
+* <termios.h> implement
+```
+BRKINT
+ICRNL
+INPCK
+ISTRIP
+IXON
+OPOST
+CS8
+ECHO
+ICANON
+IEXTEN
+ISIG
+VMIN
+VTIME
+TCSAFLUSH
+tcsetattr 
+```
+
+* <unistd.h> implement
+```
+write
+read
+STDIN_FILENO
+STDOUT_FILENO
+```
+* <stdlib.h> musl
+```
+malloc
+realloc
+free
+```
+* <stdio.h> implement
+```
+printf
+snprintf
+```
+* <string.h> musl
+```
+memcpy
+strlen
+memmove
+strdup
+strncpy
+memmove
+memset
+strcmp
+```
