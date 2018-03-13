@@ -1,7 +1,3 @@
-/* #include <stdlib.h> */
-/* extern typedef size_t; */
-/* extern void *malloc(size_t size); */
-/* extern void free(void *ptr); */
 extern void PUT32 ( unsigned int, unsigned int );
 extern unsigned int GET32 ( unsigned int );
 extern void dummy ( unsigned int );
@@ -24,6 +20,9 @@ extern void dummy ( unsigned int );
 #define AUX_MU_CNTL_REG 0x20215060
 #define AUX_MU_STAT_REG 0x20215064
 #define AUX_MU_BAUD_REG 0x20215068
+
+#define ESCAPE_SEQ 0x20
+#define MAX_WORD_LENGTH 64
 
 //GPIO14  TXD0 and TXD1
 //GPIO15  RXD0 and RXD1
@@ -74,9 +73,23 @@ void hexstring ( unsigned int d )
     uart_putc(0x0A);
 }
 //------------------------------------------------------------------------
+int parse(char * buffer, unsigned char index, unsigned char c) {
+    if (index > MAX_WORD_LENGTH) {
+	return -1;
+    }
+    if (c == ESCAPE_SEQ) {
+	return 1;
+    }
+    buffer[index] = c;
+    return 0;
+}
 int notmain ( unsigned int earlypc )
 {
     unsigned int ra;
+    unsigned char word_index = 0;
+    unsigned char i;
+    char word_buf[MAX_WORD_LENGTH];
+
 
     PUT32(AUX_ENABLES,1);
     PUT32(AUX_MU_IER_REG,0);
@@ -112,10 +125,26 @@ int notmain ( unsigned int earlypc )
             if(GET32(AUX_MU_LSR_REG)&0x01) break;
         }
         ra=GET32(AUX_MU_IO_REG);
-        /* PUT32(AUX_MU_IO_REG,ra); */
 	/* uart_putc(ra); */
-	/* uart_putc(0x20); */
-	uart_puts("WTF IS THIS?");
+	hexstring(ra);
+	switch (parse(word_buf, word_index, (unsigned char)ra)){
+	case 0:
+	    uart_puts("PUT\n");
+	    word_index++;
+	    break;
+	case 1:
+	    for (i = 0; i < word_index; i++) {
+		uart_putc(word_buf[i]);
+	    }
+	    uart_putc('\n');
+	    word_index = 0;
+	    break;
+	case -1:
+	    uart_puts("Fatal. Resetting..\n");
+	    break;
+	}
+	
+	
     }
 
     return(0);
