@@ -98,7 +98,7 @@ int notmain ( unsigned int earlypc )
 
     PUT32(AUX_MU_CNTL_REG,3);
 
-    hexstring(0x12345678);
+    uart_puts("Forth interpreter ready. Type words to list words.");
     hexstring(earlypc);
 
     while(1)

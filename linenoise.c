@@ -34,14 +34,6 @@
  * CUD (Cursor Down)
  *    Sequence: ESC [ n B
  *    Effect: moves cursor down of n chars.
- *
- * When linenoiseClearScreen() is called, two additional escape sequences
- * are used in order to clear the screen and position the cursor at home
- * position.
- *
- * CUP (Cursor position)
- *    Sequence: ESC [ H
- *    Effect: moves the cursor to upper left corner
  */
 
 #include <termios.h>
@@ -58,14 +50,13 @@
 #include <unistd.h>
 #include "linenoise.h"
 
-#define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
+#define LINENOISE_HISTORY_MAX_LEN 100
 #define LINENOISE_MAX_LINE 2048
 #define LINENOISE_MAX_COLS 80 /* as God intended. */
 
 static struct termios orig_termios; /* In order to restore at exit.*/
 static int rawmode = 0; /* For atexit() function to check if restore is needed*/
 static int atexit_registered = 0; /* Register atexit just 1 time. */
-static int history_max_len = LINENOISE_DEFAULT_HISTORY_MAX_LEN;
 static int history_len = 0;
 static char **history = NULL;
 
@@ -83,7 +74,6 @@ struct linenoiseState {
     size_t oldpos;      /* Previous refresh cursor position. */
     size_t len;         /* Current edited line length. */
     size_t cols;        /* Number of columns in terminal. */
-    size_t maxrows;     /* Maximum num of rows used so far (multiline mode) */
     int history_index;  /* The history index we are currently editing. */
 };
 
@@ -336,7 +326,7 @@ void linenoiseEditBackspace(struct linenoiseState *l) {
     }
 }
 
-/* Delete the previosu word, maintaining the cursor at the start of the
+/* Delete the previous word, maintaining the cursor at the start of the
  * current word. */
 void linenoiseEditDeletePrevWord(struct linenoiseState *l) {
     size_t old_pos = l->pos;
@@ -375,7 +365,6 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
     l.oldpos = l.pos = 0;
     l.len = 0;
     l.cols = LINENOISE_MAX_COLS;
-    l.maxrows = 0;
     l.history_index = 0;
 
     /* Buffer starts empty. */
@@ -480,18 +469,6 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
                     }
                 }
             }
-
-            /* ESC O sequences. */
-            else if (seq[0] == 'O') {
-                switch(seq[1]) {
-                case 'H': /* Home */
-                    linenoiseEditMoveHome(&l);
-                    break;
-                case 'F': /* End*/
-                    linenoiseEditMoveEnd(&l);
-                    break;
-                }
-            }
             break;
         default:
             if (linenoiseEditInsert(&l,c)) return -1;
@@ -590,13 +567,13 @@ static void linenoiseAtExit(void) {
 int linenoiseHistoryAdd(const char *line) {
     char *linecopy;
 
-    if (history_max_len == 0) return 0;
+    if (LINENOISE_HISTORY_MAX_LEN == 0) return 0;
 
     /* Initialization on first call. */
     if (history == NULL) {
-        history = malloc(sizeof(char*)*history_max_len);
+        history = malloc(sizeof(char*)*LINENOISE_HISTORY_MAX_LEN);
         if (history == NULL) return 0;
-        memset(history,0,(sizeof(char*)*history_max_len));
+        memset(history,0,(sizeof(char*)*LINENOISE_HISTORY_MAX_LEN));
     }
 
     /* Don't add duplicated lines. */
@@ -606,9 +583,9 @@ int linenoiseHistoryAdd(const char *line) {
      * If we reached the max length, remove the older line. */
     linecopy = strdup(line);
     if (!linecopy) return 0;
-    if (history_len == history_max_len) {
+    if (history_len == LINENOISE_HISTORY_MAX_LEN) {
         free(history[0]);
-        memmove(history,history+1,sizeof(char*)*(history_max_len-1));
+        memmove(history,history+1,sizeof(char*)*(LINENOISE_HISTORY_MAX_LEN-1));
         history_len--;
     }
     history[history_len] = linecopy;
