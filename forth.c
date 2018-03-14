@@ -23,14 +23,51 @@ extern void dummy ( unsigned int );
 
 #define ESCAPE_SEQ 0x20
 #define MAX_WORD_LENGTH 64
+#define MAX_INTEGER_LENGTH 10
 
 //GPIO14  TXD0 and TXD1
 //GPIO15  RXD0 and RXD1
 //alt function 5 for uart1
 //alt function 0 for uart0
-
 //((250,000,000/115200)/8)-1 = 270
-//------------------------------------------------------------------------
+
+inline char isdigit ( unsigned char c )
+{
+    switch (c){
+	case 48:
+	case 49:
+	case 50:
+	case 51:
+        case 52:
+	case 53:
+	case 54:
+	case 55:
+        case 56:
+	case 57:	
+	    return 1;
+	    break;
+        default:
+	    return 0;
+	    break;
+    }
+}
+
+char isnumber ( unsigned char* buf, unsigned char index ) 
+{
+    unsigned char scan;
+    if (!isdigit(buf[0]) && (buf[0] != 43) && (buf[0] != 45)){
+	return 0;
+    }
+    if (index > MAX_INTEGER_LENGTH){
+	return 0;
+    }
+    for (scan = index - 1; scan > 0 ;scan--) 
+    {
+	if (!isdigit(buf[scan])) return 0;
+    }
+    return 1;
+}
+
 void uart_putc ( unsigned int c )
 {
     while(1)
@@ -43,7 +80,8 @@ void uart_putc ( unsigned int c )
 void uart_puts ( char* str )
 {
     unsigned int rb = 0;
-    while(str[rb] != 0) {
+    while(str[rb] != 0)
+    {
 	uart_putc(str[rb]);
 	rb++;
     }
@@ -73,7 +111,7 @@ void hexstring ( unsigned int d )
     uart_putc(0x0A);
 }
 //------------------------------------------------------------------------
-int parse(char * buffer, unsigned char index, unsigned char c) {
+int parse(unsigned char * buffer, unsigned char index, unsigned char c) {
     if (index > MAX_WORD_LENGTH) {
 	return -1;
     }
@@ -88,7 +126,7 @@ int notmain ( unsigned int earlypc )
     unsigned int ra;
     unsigned char word_index = 0;
     unsigned char i;
-    char word_buf[MAX_WORD_LENGTH];
+    unsigned char word_buf[MAX_WORD_LENGTH];
 
 
     PUT32(AUX_ENABLES,1);
