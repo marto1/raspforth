@@ -32,6 +32,7 @@ extern void dummy ( unsigned int );
 //alt function 0 for uart0
 //((250,000,000/115200)/8)-1 = 270
 
+static unsigned int si = 0;
 static int stack[STACK_SIZE];
 static unsigned long long types = 0;
 
@@ -56,58 +57,6 @@ inline char isdigit ( unsigned char c )
     }
 }
 
-char isnumber ( unsigned char* buf, unsigned char index ) 
-{
-    unsigned char scan;
-    if (!isdigit(buf[0]) && (buf[0] != 43) && (buf[0] != 45)){
-	return 0;
-    }
-    if (index > MAX_INTEGER_LENGTH){
-	return 0;
-    }
-    if ((index == 1) && ((buf[0] == 43) || (buf[0] == 45))){
-	return 0;
-    }
-    for (scan = index - 1; scan > 0 ;scan--) 
-    {
-	if (!isdigit(buf[scan])) return 0;
-    }
-    return 1;
-}
-
-void handle_number ( unsigned char* buf, unsigned char index ) {
-    unsigned char i, neg;
-    int integer=0;
-    
-    if (buf[0] == '-'){
-	i = 1;
-	neg = 1;
-    } else {
-	i = 0;
-	neg = 0;
-    }
-
-    for (i; i < index ;i++) 
-    {
-	integer = 10*integer - (buf[i] - '0');
-    }
-    if (!neg) {
-	integer = -integer;
-    }
-}
-
-void handle_symbol ( unsigned char* buf, unsigned char index ) {
-
-}
-
-void handle_word ( unsigned char* buf, unsigned char index )
-{
-    if (isnumber(buf, index)) {
-        handle_number(buf, index);
-    } else {
-	handle_symbol(buf, index);
-    }
-}
 
 void uart_putc ( unsigned int c )
 {
@@ -152,6 +101,46 @@ void hexstring ( unsigned int d )
     uart_putc(0x0A);
 }
 //------------------------------------------------------------------------
+
+void uart_puti ( int n )
+ {
+     int a;
+     if (n < 0) {
+	 uart_putc('-');
+	 n = -n;
+     }
+     if( n > 9 ) {
+	 a = n / 10;
+
+	 n -= 10 * a;
+	 uart_puti(a);
+     }
+     uart_putc('0'+n);
+}
+
+
+char isnumber ( unsigned char* buf, unsigned char index ) 
+{
+    unsigned char scan;
+    if (!isdigit(buf[0]) && (buf[0] != 43) && (buf[0] != 45)){
+	return 0;
+    }
+    if (index > MAX_INTEGER_LENGTH){
+	return 0;
+    }
+    if ((index == 1) && ((buf[0] == 43) || (buf[0] == 45))){
+	return 0;
+    }
+    for (scan = index - 1; scan > 0 ;scan--) 
+    {
+	if (!isdigit(buf[scan])) return 0;
+    }
+    return 1;
+}
+
+
+
+
 int parse(unsigned char * buffer, unsigned char index, unsigned char c) {
     if (index > MAX_WORD_LENGTH) {
 	return -1;
@@ -162,6 +151,70 @@ int parse(unsigned char * buffer, unsigned char index, unsigned char c) {
     buffer[index] = c;
     return 0;
 }
+
+
+void stack_push ( int v, char type )
+{
+    /* if (si >= STACK_SIZE){ */
+    /* 	uart_puts("stack full. can't push.\r\n"); */
+    /* 	return;  */
+    /* } */
+    stack[si++] = v;
+    types ^= (-type ^ types) & (1ULL << si);
+}
+
+int stack_pop ( char* type )
+{
+    /* if (si == 0){ */
+    /* 	uart_puts("stack empty. can't pop.\r\n"); */
+    /* 	return 0;  */
+    /* } */
+    *type = (types >> si) & 1ULL;
+    return stack[--si];
+}
+
+void handle_number ( unsigned char* buf, unsigned char index ) {
+    unsigned char i, neg;
+    int integer=0;
+    
+    if (buf[0] == '-'){
+	i = 1;
+	neg = 1;
+    } else {
+	i = 0;
+	neg = 0;
+    }
+
+    for (; i < index ;i++) 
+    {
+	integer = 10*integer - (buf[i] - '0');
+    }
+    if (!neg) {
+	integer = -integer;
+    }
+    stack_push(integer, 1);
+}
+
+void handle_symbol ( unsigned char* buf, unsigned char index ) {
+    char type;
+    switch(buf[0]){
+        case '.':
+	    uart_puti(stack_pop(&type));
+	    uart_puts("\r\n");
+	    break;
+    }
+}
+
+void handle_word ( unsigned char* buf, unsigned char index )
+{
+    if (isnumber(buf, index)) {
+        handle_number(buf, index);
+    } else {
+	handle_symbol(buf, index);
+    }
+}
+
+
 int notmain ( unsigned int earlypc )
 {
     unsigned int ra;
@@ -194,7 +247,7 @@ int notmain ( unsigned int earlypc )
 
     PUT32(AUX_MU_CNTL_REG,3);
 
-    uart_puts("Forth interpreter ready. Type words to list words.\n");
+    uart_puts("Forth interpreter ready. Type words to list words.\r\n");
 
     while(1)
     {
@@ -203,23 +256,22 @@ int notmain ( unsigned int earlypc )
             if(GET32(AUX_MU_LSR_REG)&0x01) break;
         }
         ra=GET32(AUX_MU_IO_REG);
-	/* uart_putc(ra); */
-	hexstring(ra);
+	uart_putc(ra);
 	switch (parse(word_buf, word_index, (unsigned char)ra)){
 	case 0:
-	    uart_puts("PUT\n");
+	    /* uart_puts("PUT\r\n"); */
 	    word_index++;
 	    break;
 	case 1:
 	    /* for (i = 0; i < word_index; i++) { */
 	    /* 	uart_putc(word_buf[i]); */
 	    /* } */
-	    /* uart_putc('\n'); */
+	    /* uart_puts("\r\n"); */
 	    handle_word(word_buf, word_index);
 	    word_index = 0;
 	    break;
 	case -1:
-	    uart_puts("Fatal. Resetting..\n");
+	    uart_puts("Fatal. Resetting..\r\n");
 	    break;
 	}
 	
