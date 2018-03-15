@@ -24,12 +24,16 @@ extern void dummy ( unsigned int );
 #define ESCAPE_SEQ 0x20
 #define MAX_WORD_LENGTH 64
 #define MAX_INTEGER_LENGTH 10
+#define STACK_SIZE 40
 
 //GPIO14  TXD0 and TXD1
 //GPIO15  RXD0 and RXD1
 //alt function 5 for uart1
 //alt function 0 for uart0
 //((250,000,000/115200)/8)-1 = 270
+
+static int stack[STACK_SIZE];
+static unsigned long long types = 0;
 
 inline char isdigit ( unsigned char c )
 {
@@ -61,11 +65,48 @@ char isnumber ( unsigned char* buf, unsigned char index )
     if (index > MAX_INTEGER_LENGTH){
 	return 0;
     }
+    if ((index == 1) && ((buf[0] == 43) || (buf[0] == 45))){
+	return 0;
+    }
     for (scan = index - 1; scan > 0 ;scan--) 
     {
 	if (!isdigit(buf[scan])) return 0;
     }
     return 1;
+}
+
+void handle_number ( unsigned char* buf, unsigned char index ) {
+    unsigned char i, neg;
+    int integer=0;
+    
+    if (buf[0] == '-'){
+	i = 1;
+	neg = 1;
+    } else {
+	i = 0;
+	neg = 0;
+    }
+
+    for (i; i < index ;i++) 
+    {
+	integer = 10*integer - (buf[i] - '0');
+    }
+    if (!neg) {
+	integer = -integer;
+    }
+}
+
+void handle_symbol ( unsigned char* buf, unsigned char index ) {
+
+}
+
+void handle_word ( unsigned char* buf, unsigned char index )
+{
+    if (isnumber(buf, index)) {
+        handle_number(buf, index);
+    } else {
+	handle_symbol(buf, index);
+    }
 }
 
 void uart_putc ( unsigned int c )
@@ -125,7 +166,7 @@ int notmain ( unsigned int earlypc )
 {
     unsigned int ra;
     unsigned char word_index = 0;
-    unsigned char i;
+    /* unsigned char i; */
     unsigned char word_buf[MAX_WORD_LENGTH];
 
 
@@ -153,8 +194,7 @@ int notmain ( unsigned int earlypc )
 
     PUT32(AUX_MU_CNTL_REG,3);
 
-    uart_puts("Forth interpreter ready. Type words to list words.");
-    hexstring(earlypc);
+    uart_puts("Forth interpreter ready. Type words to list words.\n");
 
     while(1)
     {
@@ -171,10 +211,11 @@ int notmain ( unsigned int earlypc )
 	    word_index++;
 	    break;
 	case 1:
-	    for (i = 0; i < word_index; i++) {
-		uart_putc(word_buf[i]);
-	    }
-	    uart_putc('\n');
+	    /* for (i = 0; i < word_index; i++) { */
+	    /* 	uart_putc(word_buf[i]); */
+	    /* } */
+	    /* uart_putc('\n'); */
+	    handle_word(word_buf, word_index);
 	    word_index = 0;
 	    break;
 	case -1:
