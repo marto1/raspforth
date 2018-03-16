@@ -1,6 +1,7 @@
 
 ARMGNU ?= arm-none-eabi
 COPS = -Wall -O3 -nostdlib -nostartfiles -ffreestanding 
+LDFLAGS = -L /usr/lib/gcc/arm-none-eabi/4.9.3/ -lgcc
 
 gcc : forth.hex forth.bin
 
@@ -23,7 +24,7 @@ forth.o : forth.c
 	$(ARMGNU)-gcc $(COPS) -c forth.c -o forth.o
 
 forth.elf : memmap vectors.o forth.o 
-	$(ARMGNU)-ld vectors.o forth.o -T memmap -o forth.elf
+	$(ARMGNU)-ld vectors.o forth.o -T memmap -o forth.elf $(LDFLAGS)
 	$(ARMGNU)-objdump -D forth.elf > forth.list
 
 forth.bin : forth.elf

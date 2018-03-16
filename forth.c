@@ -197,10 +197,30 @@ void handle_number ( unsigned char* buf, unsigned char index ) {
 
 void handle_symbol ( unsigned char* buf, unsigned char index ) {
     char type;
+    int v1;
     switch(buf[0]){
         case '.':
 	    uart_puti(stack_pop(&type));
 	    uart_puts("\r\n");
+	    break;
+        case '+':
+	    v1 = stack_pop(&type);
+	    stack_push(v1 + stack_pop(&type), 1);
+	    break;
+        case '-':
+	    v1 = stack_pop(&type);
+	    stack_push(v1 - stack_pop(&type), 1);
+	    break;
+        case '*':
+	    v1 = stack_pop(&type);
+	    stack_push(v1 * stack_pop(&type), 1);
+	    break;
+        case '/':
+	    if((v1 = stack_pop(&type)) == 0) {
+		uart_puts("can't divide by zero\r\n");
+		return;
+	    }
+	    stack_push(stack_pop(&type) / v1, 1);
 	    break;
     }
 }
