@@ -196,8 +196,8 @@ void handle_number ( unsigned char* buf, unsigned char index ) {
 }
 
 void handle_symbol ( unsigned char* buf, unsigned char index ) {
-    char type;
-    int v1;
+    char type, type2;
+    int v1, v2;
     switch(buf[0]){
         case '.':
 	    uart_puti(stack_pop(&type));
@@ -221,6 +221,17 @@ void handle_symbol ( unsigned char* buf, unsigned char index ) {
 		return;
 	    }
 	    stack_push(stack_pop(&type) / v1, 1);
+	    break;
+        case 'd': 		/* dup */
+	    v1 = stack_pop(&type);
+	    stack_push(v1, type);
+	    stack_push(v1, type);
+	    break;
+        case 's': 		/* swap */
+	    v1 = stack_pop(&type);
+	    v2 = stack_pop(&type2);
+	    stack_push(v1, type);
+	    stack_push(v2, type2);
 	    break;
     }
 }
