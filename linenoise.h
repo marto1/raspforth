@@ -39,8 +39,12 @@
 #ifndef __LINENOISE_H
 #define __LINENOISE_H
 
-char *linenoise(const char *prompt);
-void linenoiseFree(void *ptr);
+#define LINENOISE_HISTORY_MAX_LEN 100
+#define LINENOISE_MAX_LINE 512
+#define LINENOISE_ABUF_MAX_LEN 768
+#define LINENOISE_MAX_COLS 80 /* as God intended. */
+
+char *linenoise(const char *prompt, char* input);
 int linenoiseHistoryAdd(const char *line);
 void linenoiseAtExit(void);
 

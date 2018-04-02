@@ -38,15 +38,10 @@
 
 #include <termios.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "linenoise.h"
-
-#define LINENOISE_HISTORY_MAX_LEN 100
-#define LINENOISE_MAX_LINE 512
-#define LINENOISE_MAX_COLS 80 /* as God intended. */
 
 static struct termios orig_termios; /* In order to restore at exit.*/
 static int rawmode = 0; /* For atexit() function to check if restore is needed*/
@@ -135,34 +130,8 @@ static void disableRawMode(int fd) {
 
 
 
-/* =========================== Line editing ================================= */
+/* ====================== Line editing ============================ */
 
-/* We define a very simple "append buffer" structure, that is an heap
- * allocated string where we can append to. This is useful in order to
- * write all the escape sequences in a buffer and flush them to the standard
- * output in a single call, to avoid flickering effects. */
-struct abuf {
-    char *b;
-    int len;
-};
-
-static void abInit(struct abuf *ab) {
-    ab->b = NULL;
-    ab->len = 0;
-}
-
-static void abAppend(struct abuf *ab, const char *s, int len) {
-    char *new = realloc(ab->b,ab->len+len);
-
-    if (new == NULL) return;
-    memcpy(new+ab->len,s,len);
-    ab->b = new;
-    ab->len += len;
-}
-
-static void abFree(struct abuf *ab) {
-    free(ab->b);
-}
 
 /* Single line low level line refresh.
  *
@@ -175,7 +144,8 @@ static void refreshLine(struct linenoiseState *l) {
     char *buf = l->buf;
     size_t len = l->len;
     size_t pos = l->pos;
-    struct abuf ab;
+    char ab[LINENOISE_ABUF_MAX_LEN];
+    ab[0] = '\0';
 
     while((plen+pos) >= l->cols) {
         buf++;
@@ -186,21 +156,19 @@ static void refreshLine(struct linenoiseState *l) {
         len--;
     }
 
-    abInit(&ab);
     /* Cursor to left edge */
     snprintf(seq,64,"\r");
-    abAppend(&ab,seq,strlen(seq));
+    strcat(ab, seq);
     /* Write the prompt and the current buffer content */
-    abAppend(&ab,l->prompt,strlen(l->prompt));
-    abAppend(&ab,buf,len);
+    strcat(ab, l->prompt);
+    strcat(ab, buf);
     /* Erase to right */
     snprintf(seq,64,"\x1b[0K");
-    abAppend(&ab,seq,strlen(seq));
+    strcat(ab, seq);
     /* Move cursor to original position. */
     snprintf(seq,64,"\r\x1b[%dC", (int)(pos+plen));
-    abAppend(&ab,seq,strlen(seq));
-    if (write(fd,ab.b,ab.len) == -1) {} /* Can't recover from write error. */
-    abFree(&ab);
+    strcat(ab, seq);
+    if (write(fd,ab,strlen(ab)) == -1) {} /* Can't recover from write error. */
 }
 
 /* Insert the character 'c' at cursor current position.
@@ -221,7 +189,6 @@ int linenoiseEditInsert(struct linenoiseState *l, char c) {
                 refreshLine(l);
             }
         } else {
-            memmove(l->buf+l->pos+1,l->buf+l->pos,l->len-l->pos);
             l->buf[l->pos] = c;
             l->len++;
             l->pos++;
@@ -293,7 +260,6 @@ void linenoiseEditHistoryNext(struct linenoiseState *l, int dir) {
  * position. Basically this is what happens with the "Delete" keyboard key. */
 void linenoiseEditDelete(struct linenoiseState *l) {
     if (l->len > 0 && l->pos < l->len) {
-        memmove(l->buf+l->pos,l->buf+l->pos+1,l->len-l->pos-1);
         l->len--;
         l->buf[l->len] = '\0';
         refreshLine(l);
@@ -303,7 +269,6 @@ void linenoiseEditDelete(struct linenoiseState *l) {
 /* Backspace implementation. */
 void linenoiseEditBackspace(struct linenoiseState *l) {
     if (l->pos > 0 && l->len > 0) {
-        memmove(l->buf+l->pos-1,l->buf+l->pos,l->len-l->pos);
         l->pos--;
         l->len--;
         l->buf[l->len] = '\0';
@@ -322,7 +287,6 @@ void linenoiseEditDeletePrevWord(struct linenoiseState *l) {
     while (l->pos > 0 && l->buf[l->pos-1] != ' ')
         l->pos--;
     diff = old_pos - l->pos;
-    memmove(l->buf+l->pos,l->buf+old_pos,l->len-old_pos+1);
     l->len -= diff;
     refreshLine(l);
 }
@@ -360,13 +324,13 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
      * initially is just an empty string. */
     linenoiseHistoryAdd("");
 
-    if (write(l.ofd,prompt,l.plen) == -1) return -1;
+    if (write(l.ofd,prompt,l.plen) == -1) return -1; /* OUT */
     while(1) {
         char c;
         int nread;
         char seq[3];
 
-        nread = read(l.ifd,&c,1);
+        nread = read(l.ifd,&c,1); /* IN */
         if (nread <= 0) return l.len;
 
         switch(c) {
@@ -418,7 +382,7 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
             if (seq[0] == '[') {
                 if (seq[1] >= '0' && seq[1] <= '9') {
                     /* Extended escape, read additional byte. */
-                    if (read(l.ifd,seq+2,1) == -1) break;
+                    if (read(l.ifd,seq+2,1) == -1) break; /* IN */
                     if (seq[2] == '~') {
                         switch(seq[1]) {
                         case '3': /* Delete key. */
@@ -496,20 +460,11 @@ static int linenoiseRaw(char *buf, size_t buflen, const char *prompt) {
 
 
 /* The high level function that is the main API of the linenoise library.*/
-char *linenoise(const char *prompt) {
-    char buf[LINENOISE_MAX_LINE];
+char *linenoise(const char *prompt, char* input) {
     int count;
-    count = linenoiseRaw(buf,LINENOISE_MAX_LINE,prompt);
+    count = linenoiseRaw(input, LINENOISE_MAX_LINE, prompt);
     if (count == -1) return NULL;
-    return strdup(buf);
-}
-
-/* This is just a wrapper the user may want to call in order to make sure
- * the linenoise returned buffer is freed with the same allocator it was
- * created with. Useful when the main program is using an alternative
- * allocator. */
-void linenoiseFree(void *ptr) {
-    free(ptr);
+    return input;
 }
 
 /* ================================ History ================================= */
@@ -523,9 +478,7 @@ void linenoiseAtExit(void) {
  * It uses a fixed array of char pointers that are shifted (memmoved)
  * when the history max length is reached in order to remove the older
  * entry and make room for the new one, so it is not exactly suitable for huge
- * histories, but will work well for a few hundred of entries.
- *
- * Using a circular buffer is smarter, but a bit more complex to handle. */
+ * histories, but will work well for a few hundred of entries. */
 
 int linenoiseHistoryAdd(const char *line) {
     if (LINENOISE_HISTORY_MAX_LEN == 0) return 0;

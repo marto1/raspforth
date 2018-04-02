@@ -52,18 +52,12 @@ VTIME
 TCSAFLUSH
 tcsetattr
 ```
-
 * <unistd.h> musl
 ```
 write
 read
 STDIN_FILENO
 STDOUT_FILENO
-```
-* <stdlib.h> musl
-```
-realloc
-free
 ```
 * <stdio.h> implement/delete!?
 ```
@@ -72,11 +66,8 @@ snprintf
 ```
 * <string.h> musl
 ```
-memcpy
 strlen
-memmove
-strdup
+strcat
 strncpy
-memmove
 strcmp
 ```
