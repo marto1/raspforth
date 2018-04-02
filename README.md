@@ -36,20 +36,6 @@ Plan
 
 * <termios.h> musl
 ```
-BRKINT
-ICRNL
-INPCK
-ISTRIP
-IXON
-OPOST
-CS8
-ECHO
-ICANON
-IEXTEN
-ISIG
-VMIN
-VTIME
-TCSAFLUSH
 tcsetattr
 ```
 * <unistd.h> musl

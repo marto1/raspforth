@@ -1,43 +1,42 @@
 /* linenoise.h -- VERSION 1.0
- *
- * Guerrilla line editing library against the idea that a line editing lib
- * needs to be 20,000 lines of C code.
+ * See LICENSE for license stuff.
  *
  * See linenoise.c for more information.
  *
- * ------------------------------------------------------------------------
- *
- * Copyright (c) 2010-2014, Salvatore Sanfilippo <antirez at gmail dot com>
- * Copyright (c) 2010-2013, Pieter Noordhuis <pcnoordhuis at gmail dot com>
- *
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- *  *  Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *
- *  *  Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef __LINENOISE_H
 #define __LINENOISE_H
+
+/* termios. Replace with appropriate constants. */
+
+/* struct termios { */
+/* 	tcflag_t c_iflag; */
+/* 	tcflag_t c_oflag; */
+/* 	tcflag_t c_cflag; */
+/* 	tcflag_t c_lflag; */
+/* 	cc_t c_line; */
+/* 	cc_t c_cc[NCCS]; */
+/* 	speed_t __c_ispeed; */
+/* 	speed_t __c_ospeed; */
+/* }; */
+
+/* #define BRKINT  0000002 */
+/* #define ICRNL   0000400 */
+/* #define INPCK   0000020 */
+/* #define ISTRIP  0000040 */
+/* #define IXON    0002000 */
+/* #define OPOST   0000001 */
+/* #define CS8     0000060 */
+/* #define ISIG    0000001 */
+/* #define ICANON  0000002 */
+/* #define ECHO    0000010 */
+/* #define IEXTEN  0100000 */
+/* #define VMIN          6 */
+/* #define VTIME         5 */
+/* #define TCSAFLUSH     2 */
+
+/* end  termios */
 
 #define LINENOISE_HISTORY_MAX_LEN 100
 #define LINENOISE_MAX_LINE 512
